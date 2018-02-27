@@ -374,7 +374,10 @@ module.exports = (server) => {
         //handle weather
         if (show_weather) {
           let foundWeather = (weather) => {
-              response.weather = pokes;
+              //weather is an array with objects of {center, {lat: XXXX, lng: XXXX}, cloud_level: X, fog_level: X, gameplay_weather: X, last_updated: timestamp, latitude: X, longitude: X, rain_level: X, s2_cell_id: "ID", severity: X, snow_level: X, vertices: {4x {lat: X, lng: X}, warn_weather: X, wind_direction: XX, wind_level: X, world_time: X}}
+              //each cell has it's own object...
+
+              response.weather = weather;
               completed_weather = true;
 
               pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
@@ -382,11 +385,12 @@ module.exports = (server) => {
               return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
           };
 
+          Weather.get_weather(swLat, swLng, neLat, neLng).then(foundWeather).catch(utils.handle_error);
 
         }
 
         // A request for nothing?
-        if (!show_pokemon && !show_pokestops && !show_gyms) {
+        if (!show_pokemon && !show_pokestops && !show_gyms && !show_weather) {
             return res.json(response);
         }
     });
