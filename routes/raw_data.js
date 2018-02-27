@@ -35,8 +35,8 @@ const cors = corsMiddleware({
 /* Helpers. */
 
 // Query is a combination of partials. When all completed, return response.
-function partialCompleted(pokemon, pokestops, gyms, res, response) {
-    if (pokemon && pokestops && gyms) {
+function partialCompleted(pokemon, pokestops, gyms, weather, s2grid, res, response) {
+    if (pokemon && pokestops && gyms && weather && s2grid) {
         return res.json(response);
     }
 }
@@ -149,9 +149,14 @@ module.exports = (server) => {
         const no_pokestops = parseGetParam(data.no_pokestops, false);
         const no_gyms = parseGetParam(data.no_gyms, false);
 
+//parse current settings
         const show_pokemon = parseGetParam(data.pokemon, true) && !no_pokemon;
         const show_pokestops = parseGetParam(data.pokestops, true) && !no_pokestops;
         const show_gyms = parseGetParam(data.gyms, true) && !no_gyms;
+
+        const show_weather = parseGetParam(data.weather, false);
+        const show_weather_grid = parseGetParam(data.s2cells, false);
+        const show_weather_alerts = parseGetParam(data.weatherAlerts, false);
 
         // Previous switch settings.
         const last_gyms = parseGetParam(data.lastgyms, false);
@@ -255,7 +260,7 @@ module.exports = (server) => {
 
                 pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
             };
 
             // TODO: Rewrite below workflow. We reimplemented the old Python code,
@@ -298,7 +303,7 @@ module.exports = (server) => {
                 response.pokestops = stops;
                 completed_pokestops = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
             };
 
             // First query from client?
@@ -341,7 +346,7 @@ module.exports = (server) => {
                 response.gyms = gyms_obj;
                 completed_gyms = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
             };
 
             // First query from client?
@@ -364,6 +369,20 @@ module.exports = (server) => {
                     }
                 }).catch(utils.handle_error);
             }
+        }
+
+        //handle weather
+        if (show_weather) {
+          let foundWeather = (weather) => {
+              response.weather = pokes;
+              completed_weather = true;
+
+              pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
+
+              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
+          };
+
+
         }
 
         // A request for nothing?
