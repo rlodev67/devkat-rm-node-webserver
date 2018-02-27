@@ -3,7 +3,6 @@
 // Parse config.
 require('dotenv').config();
 
-
 /* Includes. */
 
 const db = require('../inc/db.js').pool;
@@ -40,7 +39,7 @@ function prepareQueryOptions(options) {
 
     // Query options.
     var query_where = [];
-    
+
     // Optional viewport.
     if (!isEmpty(swLat) && !isEmpty(swLng) && !isEmpty(neLat) && !isEmpty(neLng)) {
         query_where.push(

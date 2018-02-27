@@ -13,7 +13,7 @@ const blacklist = require('../inc/blacklist.js');
 const Pokemon = require('../models/Pokemon');
 const Pokestop = require('../models/Pokestop');
 const Gym = require('../models/Gym');
-
+const Weather = require('../models/Weather');
 
 /* Readability. */
 const isEmpty = utils.isEmpty;
@@ -35,8 +35,8 @@ const cors = corsMiddleware({
 /* Helpers. */
 
 // Query is a combination of partials. When all completed, return response.
-function partialCompleted(pokemon, pokestops, gyms, weather, s2grid, res, response) {
-    if (pokemon && pokestops && gyms && weather && s2grid) {
+function partialCompleted(pokemon, pokestops, gyms, weather, res, response) {
+    if (pokemon && pokestops && gyms && weather) {
         return res.json(response);
     }
 }
@@ -155,8 +155,8 @@ module.exports = (server) => {
         const show_gyms = parseGetParam(data.gyms, true) && !no_gyms;
 
         const show_weather = parseGetParam(data.weather, false);
-        const show_weather_grid = parseGetParam(data.s2cells, false);
-        const show_weather_alerts = parseGetParam(data.weatherAlerts, false);
+        //const show_weather_grid = parseGetParam(data.s2cells, false);
+        //const show_weather_alerts = parseGetParam(data.weatherAlerts, false);
 
         // Previous switch settings.
         const last_gyms = parseGetParam(data.lastgyms, false);
@@ -194,6 +194,7 @@ module.exports = (server) => {
         var completed_pokemon = !show_pokemon;
         var completed_pokestops = !show_pokestops;
         var completed_gyms = !show_gyms;
+        var completed_weather = !show_weather;
 
         // General/optional.
         // TODO: Check if "lured_only" is proper var name.
@@ -260,7 +261,7 @@ module.exports = (server) => {
 
                 pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
             };
 
             // TODO: Rewrite below workflow. We reimplemented the old Python code,
@@ -303,7 +304,7 @@ module.exports = (server) => {
                 response.pokestops = stops;
                 completed_pokestops = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
             };
 
             // First query from client?
@@ -346,7 +347,7 @@ module.exports = (server) => {
                 response.gyms = gyms_obj;
                 completed_gyms = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
             };
 
             // First query from client?
@@ -380,9 +381,7 @@ module.exports = (server) => {
               response.weather = weather;
               completed_weather = true;
 
-              pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
-
-              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_s2grid, res, response);
+              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
           };
 
           Weather.get_weather(swLat, swLng, neLat, neLng).then(foundWeather).catch(utils.handle_error);

@@ -2,13 +2,10 @@
 
 // Parse config.
 require('dotenv').config();
+const debug = require('debug')('devkat:routes:raw_data');
 
 var S2 = require('s2-geometry').S2;
 var s2_level = 10;
-
-var lat_delta = 0.15;
-var lng_delta = 0.4;
-
 
 /* Includes. */
 
@@ -33,14 +30,14 @@ const FROM_UNIXTIME = "CONVERT_TZ(FROM_UNIXTIME(?), @@session.time_zone, '+00:00
 
 function prepareQueryOptions(options) {
     // Parse options.
-    var swLat = options.swLat - lat_delta;
-    var swLng = options.swLng - lng_delta;
-    var neLat = options.neLat - lat_delta;
-    var neLng = options.neLng - lng_delta;
-    var oSwLat = options.oSwLat- lat_delta;
-    var oSwLng = options.oSwLng - lng_delta;
-    var oNeLat = options.oNeLat- lat_delta;
-    var oNeLng = options.oNeLng - lng_delta;
+    var swLat = options.swLat;
+    var swLng = options.swLng;
+    var neLat = options.neLat;
+    var neLng = options.neLng;
+    var oSwLat = options.oSwLat;
+    var oSwLng = options.oSwLng;
+    var oNeLat = options.oNeLat;
+    var oNeLng = options.oNeLng;
     var alerts = options.weather_alerts;
     var timestamp = options.timestamp || false;
 
@@ -112,8 +109,7 @@ function prepareQueryOptions(options) {
     query += partials.join(' AND ');
 
     // Set limit.
-    query += ' LIMIT ' + POKESTOP_LIMIT_PER_QUERY;
-
+    query += ' LIMIT ' + WEATHER_LIMIT_PER_QUERY;
     return [ query, values ];
 }
 
@@ -124,22 +120,29 @@ function prepareWeatherPromise(query, params) {
             if (err) {
                 reject(err);
             } else {
+
                 // If there is no weather, let's just go. 👀
                 if (results.length == 0) {
                     return resolve(results);
                 }
 
                 // Manipulate weather, destructive operations.
+                //gotta add vertices array and center object
                 for (var i = 0; i < results.length; i++) {
                     let weather = results[i];
 
+                    weather.vertices = S2.S2Cell.FromLatLng({
+                      'lat' : weather.latitude,
+                      'lng' : weather.longitude
+                    }, s2_level).getCornerLatLngs();
+                    weather.center = S2.S2Cell.idToLatLng(weather.s2_cell_id);
+
                     // Avoid timezone issues. This is a UTC timestamp.
-                    weather.last_updated = pokestop.last_updated.replace(' ', 'T') + 'Z';
+                    weather.last_updated = weather.last_updated.replace(' ', 'T') + 'Z';
 
                     // Convert datetime to UNIX timestamp.
-                    weather.last_updated = Date.parse(pokestop.last_updated) || 0;
+                    weather.last_updated = Date.parse(weather.last_updated) || 0;
                 }
-
                 return resolve(results);
             }
         });
