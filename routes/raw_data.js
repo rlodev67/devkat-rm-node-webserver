@@ -260,7 +260,6 @@ module.exports = (server) => {
                 completed_pokemon = true;
 
                 pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
-
                 return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
             };
 
@@ -374,7 +373,7 @@ module.exports = (server) => {
 
         //handle weather
         if (show_weather) {
-          let foundWeather = (weather) => {
+          /*let foundWeather = (weather) => {
               //weather is an array with objects of {center, {lat: XXXX, lng: XXXX}, cloud_level: X, fog_level: X, gameplay_weather: X, last_updated: timestamp, latitude: X, longitude: X, rain_level: X, s2_cell_id: "ID", severity: X, snow_level: X, vertices: {4x {lat: X, lng: X}, warn_weather: X, wind_direction: XX, wind_level: X, world_time: X}}
               //each cell has it's own object...
 
@@ -383,13 +382,18 @@ module.exports = (server) => {
 
               return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
           };
-
-          Weather.get_weather(swLat, swLng, neLat, neLng).then(foundWeather).catch(utils.handle_error);
-
+//Weather.get_weather = (swLat, swLng, neLat, neLng, timestamp, oSwLat, oSwLng, oNeLat, oNeLng, weather_alerts)
+          Weather.get_weather(swLat, swLng, neLat, neLng).then(foundWeather).catch(utils.handle_error);*/
+          debug('Trying to get latest weather.');
+          response.weather = Weather.get_latest(false);
+          debug('Received %s cells with weatherinfo', response.weather.length);
+          completed_weather = true;
+          return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, res, response);
         }
 
         // A request for nothing?
         if (!show_pokemon && !show_pokestops && !show_gyms && !show_weather) {
+            debug('Trying to send response');
             return res.json(response);
         }
     });
