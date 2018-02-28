@@ -31,99 +31,23 @@ const WEATHER_LIMIT_PER_QUERY = parseInt(process.env.WEATHER_LIMIT_PER_QUERY) ||
 // Make sure SQL uses proper timezone.
 const FROM_UNIXTIME = "CONVERT_TZ(FROM_UNIXTIME(?), @@session.time_zone, '+00:00')";
 
-function prepareQueryOptions(options) {
+function prepareQueryOptions() {
     // Parse options.
-    var swLat = options.swLat;
-    var swLng = options.swLng;
-    var neLat = options.neLat;
-    var neLng = options.neLng;
-    var oSwLat = options.oSwLat;
-    var oSwLng = options.oSwLng;
-    var oNeLat = options.oNeLat;
-    var oNeLng = options.oNeLng;
     var weather_alerts = options.weather_alerts;
     var timestamp = options.timestamp || false;
 
-    // Query options.
-    var query_where = [];
-
-    // Optional viewport.
-    if (!isEmpty(swLat) && !isEmpty(swLng) && !isEmpty(neLat) && !isEmpty(neLng)) {
-        query_where.push(
-            [
-                'latitude >= ? AND latitude <= ?',
-                [swLat, neLat]
-            ]
-        );
-        query_where.push(
-            [
-                'longitude >= ? AND longitude <= ?',
-                [swLng, neLng]
-            ]
-        );
-    }
-
-    if (timestamp) {
-        // Change POSIX timestamp to UTC time.
-        timestamp = new Date(timestamp).getTime();
-
-        query_where.push(
-            [
-                'last_updated > ' + FROM_UNIXTIME,
-                [Math.round(timestamp / 1000)]
-            ]
-        );
-
-        // Send weather in view but exclude those within old boundaries.
-        // Don't use when timestamp is empty, it means we're intentionally trying to get
-        // old weather as well (new viewport or first request).
-        if (!isEmpty(oSwLat) && !isEmpty(oSwLng) && !isEmpty(oNeLat) && !isEmpty(oNeLng)) {
-            query_where.push(
-                [
-                    'latitude < ? AND latitude > ? AND longitude < ? AND longitude > ?',
-                    [oSwLat, oNeLat, oSwLng, oNeLng]
-                ]
-            );
-        }
-    }
-
-    // Alerts enabled/disabled
-    if (weather_alerts) {
-        query_where.push(
-            [
-                'warn_weather > 0',
-                []
-            ]
-        );
-    }
-
     // Prepare query.
     let query = '';
-    let values = [];
-    if (query_where.length > 0) {
-      query += ' WHERE ';
-      let partials = [];
-      let values = []; // Unnamed query params.
-
-      // Add individual options.
-      for (var i = 0; i < query_where.length; i++) {
-          let w = query_where[i];
-          // w = [ 'query ?', [opt1] ]
-          partials.push(w[0]);
-          values = values.concat(w[1]);
-      }
-      query += partials.join(' AND ');
-    }
 
     // Set limit.
     query += ' LIMIT ' + WEATHER_LIMIT_PER_QUERY;
-    return [ query, values ];
+    return query;
 }
 
 //TODO: format data to work as RESPONSE
-function prepareWeatherPromise(query, params) {
+function prepareWeatherPromise(query) {
     return new Promise((resolve, reject) => {
-        db.query(query, params, (err, results, fields) => {
+        db.query(query, (err, results, fields) => {
             if (err) {
                 reject(err);
             } else {
@@ -162,17 +86,11 @@ function prepareWeatherPromise(query, params) {
 const tablename = 'weather';
 const Weather = {};
 
-Weather.update_weather_full = (weather_alerts) => {
-  var query_where = prepareQueryOptions({
-      'weather_alerts' : weather_alerts
-  });
+Weather.update_weather_full = () => {
 
-  const query = 'SELECT * FROM ' + tablename + query_where[0];
-  const params = query_where[1];
+  const query = 'SELECT * FROM ' + tablename;
 
-  var promise = prepareWeatherPromise(query, params);
-  //query is being sent, let's work with it
-  promise.then(function (latest_result) {
+  prepareWeatherPromise(query).then(function (latest_result) {
       // Add the new ones to the old result and pass to handler.
       //set the new weather as latestWeather
       latestWeather = latest_result;
@@ -180,7 +98,18 @@ Weather.update_weather_full = (weather_alerts) => {
   }).catch(utils.handle_error);
 };
 
-Weather.get_latest = (weather_alerts) => {
+Weather.get_latest_alerts = () => {
+  var with_alerts = [];
+
+  for (var i = 0; i < latestWeather.length; i++) {
+    if (latestWeather[i].warn_weather > 0) {
+      with_alerts.push(latestWeather[i]);
+    }
+  }
+  return with_alerts;
+};
+
+Weather.get_latest = () => {
   if (Object.keys(latestWeather).length > 0) {
     return latestWeather;
   } else {
@@ -188,29 +117,14 @@ Weather.get_latest = (weather_alerts) => {
   }
 };
 
-
-// Get active Pokéstops by coords or timestamp.
-Weather.get_weather = (swLat, swLng, neLat, neLng, timestamp, oSwLat, oSwLng, oNeLat, oNeLng, weather_alerts) => {
-    // Prepare query.
-    var query_where = prepareQueryOptions({
-        'swLat': swLat,
-        'swLng': swLng,
-        'neLat': neLat,
-        'neLng': neLng,
-        'oSwLat': oSwLat,
-        'oSwLng': oSwLng,
-        'oNeLat': oNeLat,
-        'oNeLng': oNeLng,
-        'weather_alerts' : weather_alerts,
-        'timestamp': timestamp
-    });
-
-    const query = 'SELECT * FROM ' + tablename + query_where[0];
-    const params = query_where[1];
-
-    // Return promise.
-    return prepareWeatherPromise(query, params);
-
+Weather.get_weather = (weather_alerts) => {
+  return new Promise((resolve, reject) => {
+      if (weather_alerts) {
+        return get_latest_alerts();
+      } else {
+        return latest_result;
+      }
+  });
 };
 
 module.exports = Weather;
