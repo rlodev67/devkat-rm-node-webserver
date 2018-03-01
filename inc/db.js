@@ -27,7 +27,10 @@ const pool = mysql.createPool({
     'database': DB_DATABASE,
     'connectionLimit': DB_POOL_MAX_SIZE,
     'insecureAuth': true,
-    'dateStrings': true
+    'dateStrings': true,
+    'supportBigNumbers': true,
+    'bigNumberStrings': true
+
 });
 
 
