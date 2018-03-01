@@ -245,18 +245,13 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
       } else {
         debug('Server (PID %s) is listening on %s.', process.pid, server.url);
       }
-      //TODO: Start thread updating weather in a new module?
-
     });
 
     debug('Trying to start async loop.');
-    //var count = 0;
-    //debug('Count = %s', count);
     async.whilst(
       function() { return true; },
       function(callback) {
         Weather.update_weather_full(false);
-        //debug('Iteration no %s.', count);
         setTimeout(function() {
           callback(null);
         }, 60000); //sleep for 1 minute

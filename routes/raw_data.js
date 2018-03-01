@@ -376,20 +376,45 @@ module.exports = (server) => {
         //handle weather
         //no point handling weather itself async... hardly that much information
         if (show_weather_alerts) {
-          debug('Trying to get latest weather-alerts.');
+          let foundWeatherAlerts = (weatherAlerts) => {
+
+              response.weatherAlerts = weatherAlerts;
+              completed_weather_alerts = true;
+              debug('Found %s cells with weather alerts.', weatherAlerts.length);
+              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+          };
+
+          Weather.get_weather(true).then(foundWeatherAlerts).catch(utils.handle_error);
+
+
+          /*Alternative: don't use promises and just get it in a serial manner
           response.weatherAlerts = Weather.get_latest_alerts();
           debug('Received %s cells with weather alerts', response.weatherAlerts.length);
           completed_weather_alerts = true;
           partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+          */
         }
 
         //handle weather
         if (show_weather) {
-          debug('Trying to get latest weather.');
+
+          let foundWeather = (weather) => {
+
+              response.weather = weather;
+              completed_weather = true;
+              ebug('Received %s cells with weatherinfo', response.weather.length);
+              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+          };
+
+          Weather.get_weather(false).then(foundWeather).catch(utils.handle_error);
+
+
+          /*Alternative: don't use promises and just get it in a serial manner
           response.weather = Weather.get_latest();
           debug('Received %s cells with weatherinfo', response.weather.length);
           completed_weather = true;
           partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+          */
         }
 
         // A request for nothing?

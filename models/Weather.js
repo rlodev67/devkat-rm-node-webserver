@@ -14,7 +14,7 @@ const utils = require('../inc/utils.js');
 
 
 //cache of the latest weather
-var latestWeather = {}
+var latestWeather = []
 
 /* Readability references. */
 
@@ -91,26 +91,26 @@ Weather.update_weather_full = () => {
   const query = 'SELECT * FROM ' + tablename;
 
   prepareWeatherPromise(query).then(function (latest_result) {
-      // Add the new ones to the old result and pass to handler.
       //set the new weather as latestWeather
       latestWeather = latest_result;
-      //return foundPokestops(pokestops.concat(new_pokestops));
   }).catch(utils.handle_error);
 };
 
+//simply return an array with the weather info containing warn_weather > 0
 Weather.get_latest_alerts = () => {
   var with_alerts = [];
-
+  debug('get_latest_alerts.');
   for (var i = 0; i < latestWeather.length; i++) {
     if (latestWeather[i].warn_weather > 0) {
       with_alerts.push(latestWeather[i]);
     }
   }
+  debug('get_latest_alerts.with_alerts = %s.', with_alerts);
   return with_alerts;
 };
 
 Weather.get_latest = () => {
-  if (Object.keys(latestWeather).length > 0) {
+  if (typeof latestWeather !== 'undefined' && Object.keys(latestWeather).length > 0) {
     return latestWeather;
   } else {
     return [];
@@ -118,11 +118,14 @@ Weather.get_latest = () => {
 };
 
 Weather.get_weather = (weather_alerts) => {
+  if (typeof weather_alerts !== 'boolean') {
+    return [];
+  }
   return new Promise((resolve, reject) => {
       if (weather_alerts) {
-        return get_latest_alerts();
+        return resolve(Weather.get_latest_alerts());
       } else {
-        return latest_result;
+        return resolve(latestWeather);
       }
   });
 };
