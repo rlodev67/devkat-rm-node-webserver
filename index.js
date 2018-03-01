@@ -251,7 +251,7 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
     async.whilst(
       function() { return true; },
       function(callback) {
-        Weather.update_weather_full(false);
+        Weather.update_weather_and_neighbours_full(false);
         setTimeout(function() {
           callback(null);
         }, 60000); //sleep for 1 minute

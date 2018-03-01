@@ -209,6 +209,12 @@ server {
             proxy_pass http://flask;
         }
 
+        # Weathergrid enabled.
+        if ($arg_s2cells = "true") {
+            proxy_pass http://flask;
+        }
+
+
         proxy_pass http://devkat;
     }
 
