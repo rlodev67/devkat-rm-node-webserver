@@ -150,7 +150,7 @@ module.exports = (server) => {
         const no_pokestops = parseGetParam(data.no_pokestops, false);
         const no_gyms = parseGetParam(data.no_gyms, false);
 
-//parse current settings
+        //parse current settings
         const show_pokemon = parseGetParam(data.pokemon, true) && !no_pokemon;
         const show_pokestops = parseGetParam(data.pokestops, true) && !no_pokestops;
         const show_gyms = parseGetParam(data.gyms, true) && !no_gyms;
@@ -376,63 +376,63 @@ module.exports = (server) => {
 
         //handle weather
         if (show_weather_alerts) {
-          let foundWeatherAlerts = (weatherAlerts) => {
+            let foundWeatherAlerts = (weatherAlerts) => {
 
-              response.weatherAlerts = weatherAlerts;
-              completed_weather_alerts = true;
-              //debug('Found %s cells with weather alerts.', weatherAlerts.length);
-              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
-          };
+                response.weatherAlerts = weatherAlerts;
+                completed_weather_alerts = true;
+                //debug('Found %s cells with weather alerts.', weatherAlerts.length);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
+            };
 
-          Weather.get_weather(true).then(foundWeatherAlerts).catch(utils.handle_error);
+            Weather.get_weather(true).then(foundWeatherAlerts).catch(utils.handle_error);
 
 
-          /*Alternative: don't use promises and just get it in a serial manner
-          response.weatherAlerts = Weather.get_latest_alerts();
-          debug('Received %s cells with weather alerts', response.weatherAlerts.length);
-          completed_weather_alerts = true;
-          partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
-          */
+            /*Alternative: don't use promises and just get it in a serial manner
+            response.weatherAlerts = Weather.get_latest_alerts();
+            debug('Received %s cells with weather alerts', response.weatherAlerts.length);
+            completed_weather_alerts = true;
+            partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+            */
         }
 
         //handle grid view
         if (show_weather_grid) {
-          let foundGrid = (newGrid) => {
+            let foundGrid = (newGrid) => {
 
-              response.s2cells = newGrid;
-              completed_weather_grid = true;
-              //debug('Found %s cells for the grid.', newGrid.length);
-              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
-          };
+                response.s2cells = newGrid;
+                completed_weather_grid = true;
+                //debug('Found %s cells for the grid.', newGrid.length);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
+            };
 
-          Weather.get_grid().then(foundGrid).catch(utils.handle_error);
+            Weather.get_grid().then(foundGrid).catch(utils.handle_error);
         }
 
         //handle weather
         if (show_weather) {
 
-          let foundWeather = (weather) => {
+            let foundWeather = (weather) => {
 
-              response.weather = weather;
-              completed_weather = true;
-              //debug('Received %s cells with weatherinfo', response.weather.length);
-              return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
-          };
+                response.weather = weather;
+                completed_weather = true;
+                //debug('Received %s cells with weatherinfo', response.weather.length);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, res, response);
+            };
 
-          Weather.get_weather(false).then(foundWeather).catch(utils.handle_error);
+            Weather.get_weather(false).then(foundWeather).catch(utils.handle_error);
 
 
-          /*Alternative: don't use promises and just get it in a serial manner
-          response.weather = Weather.get_latest();
-          debug('Received %s cells with weatherinfo', response.weather.length);
-          completed_weather = true;
-          partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
-          */
+            /*Alternative: don't use promises and just get it in a serial manner
+            response.weather = Weather.get_latest();
+            debug('Received %s cells with weatherinfo', response.weather.length);
+            completed_weather = true;
+            partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, res, response);
+            */
         }
 
         // A request for nothing?
         if (!show_pokemon && !show_pokestops && !show_gyms && !show_weather && !show_weather_alerts && !show_weather_grid) {
-          //debug('Sending response. Shouldn\'t really be anything....');
+            //debug('Sending response. Shouldn\'t really be anything....');
             return res.json(response);
         }
     });
