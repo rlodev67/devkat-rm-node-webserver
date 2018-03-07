@@ -1,13 +1,13 @@
 /*
-    Async Node.js webserver w/ restify and node-mysql for RocketMap. 
-    Supports gzip compression, load limiting w/ toobusy-js and multiprocessing
-    with cluster.
+Async Node.js webserver w/ restify and node-mysql for RocketMap.
+Supports gzip compression, load limiting w/ toobusy-js and multiprocessing
+with cluster.
 
-    Developed by Sébastien Vercammen, for devkat.
-    It's all thanks to our Patrons: https://www.patreon.com/devkat
+Developed by Sébastien Vercammen, for devkat.
+It's all thanks to our Patrons: https://www.patreon.com/devkat
 
-    Thank you for supporting us to do what we do best.
- */
+Thank you for supporting us to do what we do best.
+*/
 
 // Parse config.
 require('dotenv').config();
@@ -19,6 +19,10 @@ const utils = require('./inc/utils.js');
 const db = require('./inc/db.js');
 var shuttingDown = false; // Are we shutting down?
 var online_workers = {}; // Status per worker PID.
+
+//import whilst from 'async/whilst';
+async = require("async");
+const Weather = require('./models/Weather');
 
 
 /* Readability references. */
@@ -90,7 +94,7 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
 
         // Start new worker if autorestart is enabled.
         if (AUTORESTART_WORKERS)
-            cluster.fork();
+        cluster.fork();
     });
 
     // Worker disconnected, either on graceful shutdown or kill.
@@ -165,7 +169,7 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
     // Webserver settings & optional HTTPS.
     const HTTP_OPTIONS = {
         name: SERVER_NAME,
-		version: SERVER_VERSION
+        version: SERVER_VERSION
     };
 
     if (HTTPS) {
@@ -232,7 +236,6 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
             // BEEP BOOP, R O B O T  I S  S E N T I E N T.
             if (ENABLE_CLUSTER) {
                 debug('Worker %s (PID %s) is listening on %s.', cluster.worker.id, process.pid, server.url);
-
                 // We're online. Let's tell our sensei (it's a "master" joke 👀).
                 process.send({
                     'status': 'ONLINE',
@@ -243,6 +246,26 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
                 debug('Server (PID %s) is listening on %s.', process.pid, server.url);
             }
         });
+
+        debug('Trying to start async loop.');
+        async.whilst(
+            function() { return true; },
+            function(callback) {
+                Weather.update_weather_and_neighbours_full(false);
+                setTimeout(function() {
+                    callback(null);
+                }, 60000); //sleep for 1 minute
+            },
+            function (err) {
+                if(err){
+                    debug('Some error occured');
+                }else{
+                    debug('Async whilst done.');
+                    return;
+                }
+                // 5 seconds have passed, n = 5
+            }
+        );
     });
 
 
@@ -252,7 +275,7 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
             // Calling .shutdown allows your process to exit normally.
             toobusy.shutdown();
         }
-        
+
         server.close();
 
         if (ENABLE_CLUSTER) {

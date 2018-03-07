@@ -21,6 +21,7 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
+    "async": "^2.6.0",
     "cluster": "^0.7.7",
     "debug": "^3.1.0",
     "dotenv": "^4.0.0",
@@ -28,6 +29,7 @@
     "restify": "^6.0.1",
     "restify-cors-middleware": "^1.0.1",
     "restify-errors": "^5.0.0",
+    "s2-geometry": "^1.2.9",
     "supports-color": "^4.4.0",
     "toobusy-js": "^0.5.1"
   }
