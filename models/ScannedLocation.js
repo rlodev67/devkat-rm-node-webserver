@@ -200,18 +200,6 @@ const ScannedLocation = {};
 // Get active Pokéstops by coords or timestamp.
 ScannedLocation.get_locations = (swLat, swLng, neLat, neLng, timestamp, oSwLat, oSwLng, oNeLat, oNeLng) => {
     // Prepare query.
-    debug('New coords:')
-    debug(swLat)
-    debug(swLng)
-    debug(neLat)
-    debug(neLng)
-
-    debug('Old coords:')
-    debug(oSwLat)
-    debug(oSwLng)
-    debug(oNeLat)
-    debug(oNeLng)
-
     var query_where = prepareQueryOptions({
         'swLat': swLat,
         'swLng': swLng,
@@ -229,8 +217,6 @@ ScannedLocation.get_locations = (swLat, swLng, neLat, neLng, timestamp, oSwLat, 
     //const params = query_where[1];
     const query = 'SELECT * FROM ' + tablename + query_where[0];
     const params = query_where[1];
-    debug("Query: " + query)
-    debug("Query-where: " + query_where)
 
     // Return promise.
     return prepareScannedLocationPromise(query, params);

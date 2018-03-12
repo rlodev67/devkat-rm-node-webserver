@@ -446,22 +446,16 @@ module.exports = (server) => {
 
             // First query from client?
             if (!last_scanned_locations) {
-                debug('First query for scanned locations...');
                 ScannedLocation.get_locations(swLat, swLng, neLat, neLng).then(foundScannedLocations).catch(utils.handle_error);
             } else {
-                debug('Not the first query for scanned locations...');
                 // If map is already populated only request modified locations
                 // since last request time.
-                //ScannedLocation.get_locations(oSwLat, oSwLng, oNeLat, oNeLng, timestamp).then(function (locations) {
-                    // If screen is moved add newly uncovered Pokéstops to the
-                    // ones that were modified since last request time.
-                    if (new_area) {
-                        ScannedLocation.get_locations(swLat, swLng, neLat, neLng, null, oSwLat, oSwLng, oNeLat, oNeLng).then(foundScannedLocations).catch(utils.handle_error);
-                    } else {
-                        // Unchanged viewport.
-                        //return foundScannedLocations(locations);
-                        ScannedLocation.get_locations(swLat, swLng, neLat, neLng, timestamp).then(foundScannedLocations).catch(utils.handle_error);
-                    }
+                if (new_area) {
+                    ScannedLocation.get_locations(swLat, swLng, neLat, neLng, null, oSwLat, oSwLng, oNeLat, oNeLng).then(foundScannedLocations).catch(utils.handle_error);
+                } else {
+                    // Unchanged viewport.
+                    ScannedLocation.get_locations(swLat, swLng, neLat, neLng, timestamp).then(foundScannedLocations).catch(utils.handle_error);
+                }
             }
         }
 
