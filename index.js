@@ -263,7 +263,6 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
                     debug('Async whilst done.');
                     return;
                 }
-                // 5 seconds have passed, n = 5
             }
         );
     });
