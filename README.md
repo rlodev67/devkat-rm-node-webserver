@@ -199,16 +199,6 @@ server {
             proxy_pass http://flask;
         }
 
-        # Spawnpoints.
-        if ($arg_spawnpoints = "true") {
-            proxy_pass http://flask;
-        }
-
-        # Scanned locations.
-        if ($arg_scanned = "true") {
-            proxy_pass http://flask;
-        }
-
         proxy_pass http://devkat;
     }
 

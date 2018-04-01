@@ -15,6 +15,7 @@ const Pokestop = require('../models/Pokestop');
 const Gym = require('../models/Gym');
 const Weather = require('../models/Weather');
 const ScannedLocation = require('../models/ScannedLocation');
+const Spawnpoint = require('../models/Spawnpoint')
 
 /* Readability. */
 const isEmpty = utils.isEmpty;
@@ -36,8 +37,8 @@ const cors = corsMiddleware({
 /* Helpers. */
 
 // Query is a combination of partials. When all completed, return response.
-function partialCompleted(pokemon, pokestops, gyms, weather, weather_alerts, grid, scanned, res, response) {
-    if (pokemon && pokestops && gyms && weather && weather_alerts && grid && scanned) {
+function partialCompleted(pokemon, pokestops, gyms, weather, weather_alerts, grid, scanned, spawnpoints, res, response) {
+    if (pokemon && pokestops && gyms && weather && weather_alerts && grid && scanned && spawnpoints) {
         debug('Sending response.');
         return res.json(response);
     }
@@ -202,6 +203,7 @@ module.exports = (server) => {
         var completed_weather_alerts = !show_weather_alerts;
         var completed_weather_grid = !show_weather_grid;
         var completed_scanned_locations = !show_scanned_locations;
+        var completed_spawnpoints = !show_spawnpoints;
 
         // General/optional.
         // TODO: Check if "lured_only" is proper var name.
@@ -267,7 +269,7 @@ module.exports = (server) => {
                 completed_pokemon = true;
 
                 pokemon_debug('Found %s relevant Pokémon results.', pokes.length);
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             // TODO: Rewrite below workflow. We reimplemented the old Python code,
@@ -310,7 +312,7 @@ module.exports = (server) => {
                 response.pokestops = stops;
                 completed_pokestops = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             // First query from client?
@@ -353,7 +355,7 @@ module.exports = (server) => {
                 response.gyms = gyms_obj;
                 completed_gyms = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             // First query from client?
@@ -385,7 +387,7 @@ module.exports = (server) => {
                 response.weatherAlerts = weatherAlerts;
                 completed_weather_alerts = true;
                 //debug('Found %s cells with weather alerts.', weatherAlerts.length);
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             Weather.get_weather(true).then(foundWeatherAlerts).catch(utils.handle_error);
@@ -406,7 +408,7 @@ module.exports = (server) => {
                 response.s2cells = newGrid;
                 completed_weather_grid = true;
                 //debug('Found %s cells for the grid.', newGrid.length);
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             Weather.get_grid().then(foundGrid).catch(utils.handle_error);
@@ -420,7 +422,7 @@ module.exports = (server) => {
                 response.weather = weather;
                 completed_weather = true;
                 //debug('Received %s cells with weatherinfo', response.weather.length);
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             Weather.get_weather(false).then(foundWeather).catch(utils.handle_error);
@@ -441,7 +443,7 @@ module.exports = (server) => {
                 response.scanned = locations;
                 completed_scanned_locations = true;
 
-                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, res, response);
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
             };
 
             // First query from client?
@@ -459,8 +461,32 @@ module.exports = (server) => {
             }
         }
 
+        if (show_spawnpoints) {
+            // Completion handler.
+            let foundSpawnpoints = function (spawnpoints) {
+                response.spawnpoints = spawnpoints;
+                completed_spawnpoints = true;
+
+                return partialCompleted(completed_pokemon, completed_pokestops, completed_gyms, completed_weather, completed_weather_alerts, completed_weather_grid, completed_scanned_locations, completed_spawnpoints, res, response);
+            };
+
+            // First query from client?
+            if (!last_spawnpoints) {
+                Spawnpoint.get_locations(swLat, swLng, neLat, neLng).then(foundSpawnpoints).catch(utils.handle_error);
+            } else {
+                // If map is already populated only request modified locations
+                // since last request time.
+                if (new_area) {
+                    Spawnpoint.get_locations(swLat, swLng, neLat, neLng, null, oSwLat, oSwLng, oNeLat, oNeLng).then(foundSpawnpoints).catch(utils.handle_error);
+                } else {
+                    // Unchanged viewport.
+                    Spawnpoint.get_locations(swLat, swLng, neLat, neLng, timestamp).then(foundSpawnpoints).catch(utils.handle_error);
+                }
+            }
+        }
+
         // A request for nothing?
-        if (!show_pokemon && !show_pokestops && !show_gyms && !show_weather && !show_weather_alerts && !show_weather_grid && !show_scanned_locations) {
+        if (!show_pokemon && !show_pokestops && !show_gyms && !show_weather && !show_weather_alerts && !show_weather_grid && !show_scanned_locations && !show_spawnpoints) {
             //debug('Sending response. Shouldn\'t really be anything....');
             return res.json(response);
         }
