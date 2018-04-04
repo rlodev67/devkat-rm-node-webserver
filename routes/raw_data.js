@@ -187,6 +187,7 @@ module.exports = (server) => {
         // Other.
         const spawnpoints = parseGetParam(data.spawnpoints, false);
         var timestamp = parseGetParam(data.timestamp, undefined);
+        const prionotify = parseGetParam(data.prionotify, false);
 
         // Convert to usable date object.
         if (!isEmpty(timestamp)) {
@@ -249,7 +250,7 @@ module.exports = (server) => {
             if (!isEmpty(data.ids)) {
                 ids = parseGetParam(data.ids.split(','), []);
             }
-            if (!isEmpty(data.eids)) {
+            if (!isEmpty(data.eids) && prionotify == false) {
                 excluded = parseGetParam(data.eids.split(','), []);
             }
             if (!isEmpty(data.reids)) {
