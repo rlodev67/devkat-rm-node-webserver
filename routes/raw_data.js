@@ -250,7 +250,7 @@ module.exports = (server) => {
             if (!isEmpty(data.ids)) {
                 ids = parseGetParam(data.ids.split(','), []);
             }
-            if (!isEmpty(data.eids) && prionotify == false) {
+            if (prionotify == false && !isEmpty(data.eids)) {
                 excluded = parseGetParam(data.eids.split(','), []);
             }
             if (!isEmpty(data.reids)) {
@@ -427,7 +427,6 @@ module.exports = (server) => {
             };
 
             Weather.get_weather(false).then(foundWeather).catch(utils.handle_error);
-
 
             /*Alternative: don't use promises and just get it in a serial manner
             response.weather = Weather.get_latest();

@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const db = require('../inc/db.js').pool;
 const utils = require('../inc/utils.js');
-const debug = require('debug')('devkat:routes:raw_data');
+const debug = require('debug')('devkat:models:ScannedLocation');
 
 
 /* Readability references. */
@@ -27,7 +27,6 @@ const FROM_UNIXTIME = "CONVERT_TZ(FROM_UNIXTIME(?), @@session.time_zone, '+00:00
 const TIMEDELTA = 15; //minutes
 
 function prepareQueryOptions(options) {
-    debug('Preparing query');
     // Parse options.
     var swLat = options.swLat;
     var swLng = options.swLng;

@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const db = require('../inc/db.js').pool;
 const utils = require('../inc/utils.js');
-const debug = require('debug')('devkat:routes:raw_data');
+const debug = require('debug')('devkat:models:Spawnpoint');
 
 
 /* Readability references. */
@@ -23,14 +23,24 @@ const SPAWNPOINT_LIMIT_PER_QUERY = parseInt(process.env.SPAWNPOINT_LIMIT_PER_QUE
 /* Helpers. */
 
 String.prototype.count=function(s1) {
-    return (this.length - this.replace(new RegExp(s1,"g"), '').length) / s1.length;
+    var count = 0;
+    for (var i = 0; i < this.length; i++) {
+        if (this.charAt(i) === s1) {
+            count++;
+        }
+    }
+    return count;
 }
+
+// https://stackoverflow.com/questions/4467539/javascript-modulo-gives-a-negative-result-for-negative-numbers
+function mod(n, m) {
+    return ((n % m) + m) % m;
+}
+
 // Make sure SQL uses proper timezone.
 const FROM_UNIXTIME = "CONVERT_TZ(FROM_UNIXTIME(?), @@session.time_zone, '+00:00')";
-const TIMEDELTA = 15; //minutes
 
 function prepareQueryOptions(options) {
-    debug('Preparing spawnpoint query');
     // Parse options.
     var swLat = options.swLat;
     var swLng = options.swLng;
@@ -47,8 +57,6 @@ function prepareQueryOptions(options) {
     var query_where = [];
     var orderBy = false;
 
-    //ported from
-    //https://github.com/SenorKarlos/RocketMap/blob/MIX_MEWTWO/pogom/models.py#L795
     if (timestamp) {
         //timestamp > 0
         query_where.push(
@@ -74,13 +82,6 @@ function prepareQueryOptions(options) {
         }
     } else if (!isEmpty(oSwLat) && !isEmpty(oSwLng) && !isEmpty(oNeLat) && !isEmpty(oNeLng)) {
         //window was moved, get the new info
-        /*query_where.push(
-            [
-                'last_scanned > ' + FROM_UNIXTIME,
-                [Math.round((Date.now() - TIMEDELTA * 60 * 1000) / 1000)]
-            ]
-        );*/
-
         if (!isEmpty(swLat) && !isEmpty(swLng) && !isEmpty(neLat) && !isEmpty(neLng)) {
             query_where.push(
                 [
@@ -101,19 +102,10 @@ function prepareQueryOptions(options) {
                 [
                     'NOT(sp.latitude < ? AND sp.latitude > ? AND sp.longitude < ? AND sp.longitude > ?)',
                     [oNeLat, oSwLat, oNeLng, oSwLng]
-                    //[Math.round((Date.now() - TIMEDELTA * 60 * 1000) / 1000), oSwLat, oNeLat, oSwLng, oNeLng]
                 ]
             );
         }
     } else {
-        //no timestamp, new old locations... let's throw some data
-        /*query_where.push(
-            [
-                'last_scanned > ' + FROM_UNIXTIME,
-                [Math.round(timestamp / 1000)]
-            ]
-        );*/
-
         if (!isEmpty(swLat) && !isEmpty(swLng) && !isEmpty(neLat) && !isEmpty(neLng)) {
             query_where.push(
                 [
@@ -144,46 +136,47 @@ function prepareQueryOptions(options) {
     }
     query += partials.join(' AND ');
     // Set limit.
-    //TODO: innerjoin
     query += ' LIMIT ' + SPAWNPOINT_LIMIT_PER_QUERY;
-
     return [ query, values ];
 }
 
 //https://github.com/SenorKarlos/RocketMap/blob/MIX_MEWTWO/pogom/models.py#L1343
 function calculateStartEndTimeOfSpawnpoint(sp, spawn_delay = 0, links = false) {
-  var links_arg = links;
-  if (links == false) {
-    links = sp["links"];
-  }
+    var links_arg = links;
+    if (links == false) {
+        links = sp["links"];
+    }
 
-  if (links.count('-') == 0) {
+    if (links.count('-') == 0) {
+        links = links.replace(/.$/,"-");
+    }
+
+    links = links.replace(/\?/g, '\+');
+
     links = links.replace(/.$/,"-");
-  }
+    var plus_or_minus = "";
+    if (links.count('+') > 0) {
+        plus_or_minus = links.indexOf('+');
+    } else {
+        plus_or_minus = links.indexOf('-');
+    }
 
-  links = links.replace(/\?/g, '\+');
+    let start = sp["earliest_unseen"] - (4 - plus_or_minus) * 900 + spawn_delay;
+    var no_tth_adjust = 0;
+    if (!links_arg && !tthFound(sp)) {
+        no_tth_adjust = 60;
+    }
+    var end = sp["latest_seen"] - (3 - links.indexOf('-')) * 900 + no_tth_adjust;
 
-  links = links.replace(/.$/,"-");
-  var plus_or_minus = "";
-  if (links.count('[\+]') > 0) {
-    plus_or_minus = links.indexOf('\+');
-  } else {
-    plus_or_minus = links.indexOf('-');
-  }
-
-  var start = sp["earliest_unseen"] - (4 - plus_or_minus) * 900 + spawn_delay;
-  var no_tth_adjust = 0;
-  if (links_arg == false && tthFound(sp) == false) {
-    no_tth_adjust = 60;
-  }
-  var end = sp["latest_seen"] - (3 - links.indexOf('-')) * 900 + no_tth_adjust;
-  return [start % 3600, end % 3600];
+    start = mod(start, 3600);
+    end = mod(end, 3600);
+    return [start, end];
 }
 
 function tthFound(sp) {
-  var latest_seen = sp["latest_seen"] % 3600;
-  var earliest_unseen = sp["earliest_unseen"] % 3600;
-  return latest_seen - earliest_unseen == 0;
+    let latest_seen = mod(sp["latest_seen"], 3600);
+    let earliest_unseen = mod(sp["earliest_unseen"], 3600);
+    return latest_seen - earliest_unseen == 0;
 }
 
 function prepareSpawnpointPromise(query, params) {
@@ -192,9 +185,9 @@ function prepareSpawnpointPromise(query, params) {
             if (err) {
                 reject(err);
             } else {
-                debug('Got %d spawnpoints', results.length)
                 // If there are no spawnpoints, let's just go. 👀
                 if (results.length == 0) {
+                    debug('No spawnpoints to be processed')
                     return resolve(results);
                 }
 
@@ -217,19 +210,14 @@ function prepareSpawnpointPromise(query, params) {
                     processed_sp["disappear_time"] = startEnd[1];
                     processed_sp["appear_time"] = startEnd[0];
                     if (tthFound(sp) == false || sp['done'] == 0) {
-                      processed_sp["uncertain"] = true;
+                        processed_sp["uncertain"] = true;
                     }
                     processed_sp["latitude"] = sp["latitude"];
                     processed_sp["longitude"] = sp["longitude"];
 
                     results[i] = processed_sp;
-                    /*if (location.done == 1) {
-                        location.done = true;
-                    } else {
-                        location.done = false;
-                    }*/
                 }
-
+                debug('Processed %d spawnpoints', results.length)
                 return resolve(results);
             }
         });
@@ -255,13 +243,10 @@ Spawnpoint.get_locations = (swLat, swLng, neLat, neLng, timestamp, oSwLat, oSwLn
         'oNeLat': oNeLat,
         'oNeLng': oNeLng,
         'timestamp': timestamp
-        //'new_area': new_area
     });
 
-    //const query = 'SELECT * FROM ' + tablename + query_where[0];
-    //const params = query_where[1];
     const joins = ' LEFT JOIN scanspawnpoint ssp ON ssp.spawnpoint_id = sp.id '
-      + 'LEFT JOIN scannedlocation sl ON sl.cellid = ssp.scannedlocation_id '
+    + 'LEFT JOIN scannedlocation sl ON sl.cellid = ssp.scannedlocation_id '
     const query = 'SELECT sp.*, sl.done FROM ' + tablename + joins + query_where[0];
     const params = query_where[1];
 
