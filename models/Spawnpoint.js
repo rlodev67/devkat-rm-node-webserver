@@ -23,8 +23,8 @@ const SPAWNPOINT_LIMIT_PER_QUERY = parseInt(process.env.SPAWNPOINT_LIMIT_PER_QUE
 /* Helpers. */
 
 String.prototype.count=function(s1) {
-    var count = 0;
-    for (var i = 0; i < this.length; i++) {
+    let count = 0;
+    for (let i = 0; i < this.length; i++) {
         if (this.charAt(i) === s1) {
             count++;
         }
@@ -142,7 +142,7 @@ function prepareQueryOptions(options) {
 
 //https://github.com/SenorKarlos/RocketMap/blob/MIX_MEWTWO/pogom/models.py#L1343
 function calculateStartEndTimeOfSpawnpoint(sp, spawn_delay = 0, links = false) {
-    var links_arg = links;
+    let links_arg = links;
     if (links == false) {
         links = sp["links"];
     }
@@ -154,7 +154,7 @@ function calculateStartEndTimeOfSpawnpoint(sp, spawn_delay = 0, links = false) {
     links = links.replace(/\?/g, '\+');
 
     links = links.replace(/.$/,"-");
-    var plus_or_minus = "";
+    let plus_or_minus = "";
     if (links.count('+') > 0) {
         plus_or_minus = links.indexOf('+');
     } else {
@@ -162,11 +162,11 @@ function calculateStartEndTimeOfSpawnpoint(sp, spawn_delay = 0, links = false) {
     }
 
     let start = sp["earliest_unseen"] - (4 - plus_or_minus) * 900 + spawn_delay;
-    var no_tth_adjust = 0;
+    let no_tth_adjust = 0;
     if (!links_arg && !tthFound(sp)) {
         no_tth_adjust = 60;
     }
-    var end = sp["latest_seen"] - (3 - links.indexOf('-')) * 900 + no_tth_adjust;
+    let end = sp["latest_seen"] - (3 - links.indexOf('-')) * 900 + no_tth_adjust;
 
     start = mod(start, 3600);
     end = mod(end, 3600);
@@ -195,7 +195,7 @@ function prepareSpawnpointPromise(query, params) {
                 for (var i = 0; i < results.length; i++) {
                     let sp = results[i];
 
-                    var processed_sp = {};
+                    let processed_sp = {};
                     if (typeof sp.last_scanned !== 'string') { //to avoid the value being null...
                         continue;
                     }
@@ -204,7 +204,7 @@ function prepareSpawnpointPromise(query, params) {
 
                     // Convert datetime to UNIX timestamp.
                     sp.last_scanned = Date.parse(sp.last_scanned) || 0;
-                    var startEnd = calculateStartEndTimeOfSpawnpoint(sp);
+                    let startEnd = calculateStartEndTimeOfSpawnpoint(sp);
 
                     processed_sp["id"] = sp["id"];
                     processed_sp["disappear_time"] = startEnd[1];
